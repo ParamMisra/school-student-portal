@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables & secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+
+# TypeScript build output
+dist/
+build/
+
+# Uploaded CSV files & temporary storage
+uploads/*
+!uploads/.gitkeep
+
+# System & IDE files
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*
