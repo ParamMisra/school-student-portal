@@ -2,10 +2,9 @@ import { Request, Response } from 'express';
 import { UserModel } from '../../models/User.model';
 import { getPaginationParams } from '../../utils/helpers';
 import { bulkUploadQueue } from './admin.queue';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import csv from 'csv-parser';
-
-
 
 export class AdminController {
   static async getUsers(req: Request, res: Response) {
@@ -26,6 +25,36 @@ export class AdminController {
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async createUser(req: Request, res: Response) {
+    try {
+      const { user_id, name, email, role, class_id, password } = req.body;
+      const school_id = req.user?.schoolId;
+
+      const existingUser = await UserModel.findOne({ $or: [{ email }, { user_id }] });
+      if (existingUser) return res.status(400).json({ error: 'User with this email or User ID already exists' });
+
+      const emailPrefix = email.split('@')[0];
+      const defaultPassword = password || `${emailPrefix}123`;
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+      const userPayload: any = {
+        user_id,
+        school_id,
+        name,
+        email,
+        role,
+        password_hash: hashedPassword,
+      };
+
+      if (class_id) userPayload.class_id = class_id;
+
+      const newUser = await UserModel.create(userPayload);
+      res.status(201).json({ message: 'User created successfully', data: newUser });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
     }
   }
 
@@ -72,12 +101,10 @@ export class AdminController {
       const results: Record<string, any>[] = [];
       const filePath = req.file.path;
 
-      // Read and parse the uploaded CSV file using streams
       fs.createReadStream(filePath)
         .pipe(csv())
         .on('data', (data: Record<string, any>) => results.push(data))
         .on('end', async () => {
-          // Clean up temporary uploaded file
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
@@ -86,7 +113,6 @@ export class AdminController {
             return res.status(400).json({ error: 'CSV file is empty or formatted incorrectly' });
           }
 
-          // Add the parsed array to BullMQ background job
           const job = await bulkUploadQueue.add('bulk-user-insert', { usersData: results });
 
           res.status(202).json({
@@ -106,4 +132,4 @@ export class AdminController {
       res.status(500).json({ error: err.message });
     }
   }
-} 
+}

@@ -21,7 +21,7 @@ export class AuthController {
       res.status(400).json({ error: err.message });
     }
   }
-  
+
   static async loginTeacher(req: Request, res: Response) {
     try {
       const { email, password } = req.body;
@@ -45,13 +45,37 @@ export class AuthController {
   static async changePassword(req: Request, res: Response) {
     try {
       const { newPassword } = req.body;
-      const userId = (req as any).user.userId; // Retrieved from authenticate middleware
-      
+      const userId = (req as any).user.userId;
+
       if (!newPassword) {
         return res.status(400).json({ error: 'New password is required' });
       }
 
       const result = await AuthService.changePassword(userId, newPassword);
+      res.status(200).json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
+  static async requestPasswordReset(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ error: 'Email is required' });
+      const result = await AuthService.requestPasswordReset(email);
+      res.status(200).json(result);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
+  static async resetPasswordWithOTP(req: Request, res: Response) {
+    try {
+      const { email, otp, newPassword } = req.body;
+      if (!email || !otp || !newPassword) {
+        return res.status(400).json({ error: 'Email, OTP, and new password are required' });
+      }
+      const result = await AuthService.resetPasswordWithOTP(email, otp, newPassword);
       res.status(200).json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });

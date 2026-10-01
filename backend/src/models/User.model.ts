@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 import { UserRole } from '../constants/enums';
 
 export interface IUser extends Document {
@@ -9,6 +9,7 @@ export interface IUser extends Document {
   role: UserRole;
   password_hash: string;
   class_id?: string;
+  subjects?: string[]; 
 }
 
 const userSchema = new Schema<IUser>({
@@ -18,7 +19,8 @@ const userSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true },
   role: { type: String, enum: Object.values(UserRole), required: true },
   password_hash: { type: String, required: true },
-  class_id: { type: String, required: false }
+  class_id: { type: String, required: false },
+  subjects: { type: [String], default: [] } 
 }, { timestamps: true });
 
 export const UserModel = model<IUser>('User', userSchema);

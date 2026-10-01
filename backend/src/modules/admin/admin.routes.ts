@@ -6,10 +6,10 @@ import { upload } from '../../middleware/upload.middleware';
 
 const router = Router();
 
-// Secure all admin routes
 router.use(authenticate, authorizeRole([UserRole.ADMIN]));
 
 router.get('/users', AdminController.getUsers);
+router.post('/users/create', AdminController.createUser);
 router.get('/users/:userId', AdminController.getUserById);
 router.put('/users/:userId', AdminController.updateUser);
 router.delete('/users/:userId', AdminController.deleteUser);

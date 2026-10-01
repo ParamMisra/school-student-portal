@@ -4,17 +4,24 @@ import { authenticate, authorizeRole } from '../../middleware/auth.middleware';
 import { UserRole } from '../../constants/enums';
 
 const router = Router();
+router.use(authenticate);
 
-router.get('/admin/timetable', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.getAdminTimetable);
-router.post('/admin/timetable', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.createTimetable);
-router.put('/admin/timetable/:id', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.updateTimetable);
-router.delete('/admin/timetable/:id', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.deleteTimetable);
+// Resolves to: GET /api/timetable/class/:classId
+router.get('/class/:classId', TimeTableController.getTimetableByClass);
 
-router.post('/admin/substitute', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.assignSubstitute);
-router.put('/admin/substitute/:id', authenticate, authorizeRole([UserRole.ADMIN]), TimeTableController.assignSubstitute);
+// Resolves to: POST /api/timetable/admin/slot
+router.post('/admin/slot', authorizeRole([UserRole.ADMIN]), TimeTableController.upsertSlot);
 
-router.get('/teacher/timetable', authenticate, authorizeRole([UserRole.TEACHER]), TimeTableController.getTeacherTimetable);
-router.get('/teacher/substitutes', authenticate, authorizeRole([UserRole.TEACHER]), TimeTableController.getTeacherSubstitutes);
-router.get('/student/timetable', authenticate, authorizeRole([UserRole.STUDENT]), TimeTableController.getStudentTimetable);
+// Resolves to: POST /api/timetable/admin/substitute
+router.post('/admin/substitute', authorizeRole([UserRole.ADMIN]), TimeTableController.assignSubstitute);
+
+// Resolves to: GET /api/timetable/admin/teachers-list
+router.get('/admin/teachers-list', authorizeRole([UserRole.ADMIN]), TimeTableController.getAllTeachers);
+
+// Resolves to: GET /api/timetable/teacher/my-timetable
+router.get('/teacher/my-timetable', authorizeRole([UserRole.TEACHER]), TimeTableController.getTeacherTimetable);
+
+// Resolves to: GET /api/timetable/student/my-timetable
+router.get('/student/my-timetable', authorizeRole([UserRole.STUDENT]), TimeTableController.getStudentTimetable);
 
 export default router;

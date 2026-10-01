@@ -24,13 +24,22 @@ export const authenticate = (req: any, res: Response, next: NextFunction): void 
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ message: 'Invalid or expired token' });
+    res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
 
 export const authorizeRole = (allowedRoles: UserRole[]) => {
   return (req: any, res: Response, next: NextFunction): void => {
-    if (!req.user || !allowedRoles.includes(req.user.role as UserRole)) {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthorized: User authentication payload missing' });
+      return;
+    }
+
+    // ⚡ Case-insensitive role comparison
+    const userRole = String(req.user.role).toUpperCase();
+    const normalizedAllowedRoles = allowedRoles.map((role) => String(role).toUpperCase());
+
+    if (!normalizedAllowedRoles.includes(userRole)) {
       res.status(403).json({ message: 'Unauthorized access for this role' });
       return;
     }
