@@ -1,3 +1,4 @@
+import 'dotenv/config'; // ⚡ MUST BE LINE 1
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
@@ -7,7 +8,6 @@ import timetableRoutes from './modules/timetable/timetable.routes';
 import attendanceRoutes from './modules/attendance/attendance.routes';
 import marksRoutes from './modules/marks/marks.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
-import 'dotenv/config';
 
 const app = express();
 

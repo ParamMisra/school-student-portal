@@ -3,6 +3,35 @@ import { AuthService } from './auth.service';
 import { UserRole } from '../../constants/enums';
 
 export class AuthController {
+  // Redirect user to Google OAuth consent screen
+  static googleRedirect(req: Request, res: Response) {
+    try {
+      const authUrl = AuthService.getGoogleAuthUrl();
+      res.redirect(authUrl);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Handle callback from Google OAuth
+  static async googleCallback(req: Request, res: Response) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    try {
+      const code = req.query.code as string;
+      if (!code) {
+        return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Google authorization code missing')}`);
+      }
+
+      const { token, user } = await AuthService.handleGoogleCallback(code);
+
+      // Redirect back to React app with token and user payload in query params
+      const userString = encodeURIComponent(JSON.stringify(user));
+      res.redirect(`${frontendUrl}/login?token=${token}&user=${userString}`);
+    } catch (err: any) {
+      res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(err.message)}`);
+    }
+  }
+
   static async loginAdmin(req: Request, res: Response) {
     try {
       const { email, password } = req.body;

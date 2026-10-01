@@ -4,8 +4,80 @@ import bcrypt from 'bcryptjs';
 import { generateAccessToken } from '../../utils/helpers';
 import { UserRole } from '../../constants/enums';
 import { sendOTPNotice } from '../../utils/mailer';
+import { google } from 'googleapis';
 
 export class AuthService {
+  // Helper to initialize Google OAuth2 client with defensive validation
+  private static getOAuthClient() {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/google/callback';
+
+    // ⚡ Validation check to prevent cryptic "invalid_client" errors
+    if (
+      !clientId || 
+      !clientSecret || 
+      clientId.includes('your_google_client_id') || 
+      clientSecret.includes('your_google_client_secret')
+    ) {
+      throw new Error(
+        'Google OAuth configuration error: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing or set to a placeholder in your backend .env file.'
+      );
+    }
+
+    return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  }
+
+  // Generate Google consent screen URL
+  static getGoogleAuthUrl(): string {
+    const oauth2Client = this.getOAuthClient();
+    const scopes = [
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email',
+    ];
+
+    return oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: scopes,
+    });
+  }
+
+  // Handle Google OAuth Callback (Strict DB lookup & Account Linking)
+  static async handleGoogleCallback(code: string) {
+    const oauth2Client = this.getOAuthClient();
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const { data: googleProfile } = await oauth2.userinfo.get();
+
+    if (!googleProfile.email) {
+      throw new Error('Could not retrieve email from Google profile');
+    }
+
+    // 1. Strict pre-provisioned user lookup
+    const user = await UserModel.findOne({ email: googleProfile.email });
+    if (!user) {
+      throw new Error('Account not created by Admin. Please contact your administrator.');
+    }
+
+    // 2. Link Google ID if not previously linked
+    if (!user.googleId && googleProfile.id) {
+      user.googleId = googleProfile.id;
+      await user.save();
+    }
+
+    // 3. Issue standard application JWT
+    const token = generateAccessToken({
+      userId: user.user_id,
+      role: user.role,
+      schoolId: user.school_id.toString(),
+    });
+
+    return { token, user };
+  }
+
   static async registerAdmin(data: { user_id: string; school_id: string; name: string; email: string; password: string }) {
     const existingUser = await UserModel.findOne({ email: data.email });
     if (existingUser) throw new Error('User with this email exists');
@@ -55,8 +127,8 @@ export class AuthService {
     if (!user) throw new Error('User not found');
 
     if (user.role.toUpperCase() !== targetRole.toUpperCase()) {
-  throw new Error(`Access denied. Expected role: ${targetRole}`);
-}
+      throw new Error(`Access denied. Expected role: ${targetRole}`);
+    }
 
     const isMatch = await bcrypt.compare(pass, user.password_hash);
     if (!isMatch) throw new Error('Invalid credentials');

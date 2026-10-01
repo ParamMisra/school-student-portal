@@ -9,7 +9,8 @@ export interface IUser extends Document {
   role: UserRole;
   password_hash: string;
   class_id?: string;
-  subjects?: string[]; 
+  subjects?: string[];
+  googleId?: string;
 }
 
 const userSchema = new Schema<IUser>({
@@ -20,7 +21,8 @@ const userSchema = new Schema<IUser>({
   role: { type: String, enum: Object.values(UserRole), required: true },
   password_hash: { type: String, required: true },
   class_id: { type: String, required: false },
-  subjects: { type: [String], default: [] } 
+  subjects: { type: [String], default: [] },
+  googleId: { type: String, unique: true, sparse: true } 
 }, { timestamps: true });
 
 export const UserModel = model<IUser>('User', userSchema);

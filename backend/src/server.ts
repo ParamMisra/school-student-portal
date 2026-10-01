@@ -1,9 +1,9 @@
+import 'dotenv/config'; // ⚡ MUST BE LINE 1 (Before importing app or modules)
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import app from './app';
 import { connectDatabase } from './config/db';
 import { startBulkUploadWorker } from './modules/admin/admin.worker';
-import 'dotenv/config';
 
 const PORT = process.env.PORT || 5000;
 

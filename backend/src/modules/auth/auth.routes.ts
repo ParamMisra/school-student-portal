@@ -4,6 +4,10 @@ import { authenticate } from '../../middleware/auth.middleware';
 
 const router = Router();
 
+// Google OAuth routes
+router.get('/google', AuthController.googleRedirect);
+router.get('/google/callback', AuthController.googleCallback);
+
 router.post('/login-admin', AuthController.loginAdmin);
 router.post('/register', AuthController.registerAdmin);
 router.post('/login-teacher', AuthController.loginTeacher);
